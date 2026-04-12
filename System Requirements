@@ -1,0 +1,268 @@
+System Requirements and Application Specifications
+
+
+1.Development model:
+
+Model: Agile (Scrum)
+Agile was selected because the Urban Issue Reporting & Tracking System requires frequent feedback cycles and iterative development. 
+Requirements evolved throughout the project, for example, the addition of public issue tracking,reporting, and role-based access control were identified during development rather than upfront. 
+Agile's flexibility allowed the team to accommodate these changes without disrupting the overall project structure. 
+Short sprints also made it easier to divide work among team members and review progress regularly.
+
+
+2.User requirements:
+a.Stakeholders
+Citizens: Residents who submit reports about urban infrastructure problems (e.g., potholes, broken streetlights, illegal dumping). Their interest is a fast, easy way to report issues and track their resolution status.
+Municipality Staff: Government employees responsible for reviewing submitted reports, assigning them to the appropriate department, updating statuses, and resolving issues. Their interest is an organized dashboard that helps manage workload efficiently.
+Administrators: users who manage staff accounts, configure departments, and access system-wide analytics and reports. Their interest is maintaining system integrity and monitoring overall performance.
+Developers: Responsible for designing, building, and maintaining the system. Their interest is producing a reliable, maintainable, and secure platform.
+
+b. Users:	
+As a citizen, I want to submit an issue report with a location pin on a map so that municipality staff can quickly locate and address the problem.
+As a citizen, I want to track the status of my submitted report using a public tracking link so that I can stay informed without needing to log in.
+As a citizen, I want to receive a confirmation and a unique report ID after submission so that I have proof my report was received.
+As a municipality staff member, I want to view all submitted reports on a dashboard so that I can manage and prioritize incoming issues efficiently.
+As a municipality staff member, I want to update the status of a report (Pending → In Progress → Resolved) so that citizens and administrators are kept informed of progress.
+As a municipality staff member, I want to filter reports by category, status, and date so that I can focus on the most urgent or relevant cases.
+As an administrator, I want to create and manage staff accounts so that I can control who has access to the system.
+As an administrator, I want to view SLA compliance reports so that I can identify departments that are not resolving issues within the required timeframe.
+As an administrator, I want to assign reports to specific departments so that the right team handles each type of issue.
+
+3. Functional Requirements:
+a.Citizen features:
+User Registration: The system shall allow users to register with a name, email address, and password to create an account.
+User Authentication: The system shall authenticate registered users via email and password, issuing a JWT (Jason Web Token) token upon success.
+Issue Submission: Authenticated users shall be able to submit a new issue by providing a title, description, category (e.g., pothole, streetlight, graffiti), and a map pin location.
+Photo Attachment: Users shall be able to attach one or more photos to an issue report at submission time.
+Public Issue Tracking: Users shall be able to track the status of their submitted issues (e.g., Pending, In Progress, Resolved) without requiring re-authentication via a public tracking link.
+Issue History: Authenticated users shall be able to view a list of all issues they have previously submitted, along with their current status.
+Map View: The system shall display all reported issues as pins on an interactive map (Leaflet.js), color-coded by status or category.
+
+b.Municipality staff:
+Staff Login: Municipality staff shall log in through the same authentication system but be granted a distinct "staff" or "admin" role with more permissions.
+Issue Dashboard: Staff shall have access to a dashboard listing all submitted issues, which can be filtered by status, category, date, and location.
+Issue Assignment: Staff shall be able to assign an issue to a specific department responsible for resolution.
+Status Update: Staff shall be able to update the status of any issue (e.g., from Pending to In Progress, or to Resolved).
+Issue Rejection: Staff shall be able to reject duplicate or invalid reports, providing a reason that is communicated back to the submitter.
+Resolution Notes: Staff shall be able to attach resolution notes when marking an issue as Resolved.
+
+c.Notifications features:
+Status Change Notification: The system shall notify a citizen via email whenever the status of their submitted issue changes.
+Submission Confirmation: The system shall send a confirmation email to the citizen upon successful issue submission, including a reference ID.
+
+d.Reporting features:
+Issue Statistics: The system shall generate summary statistics for staff, including total issues by category, average resolution time, and number of open vs. resolved issues.
+Export Report: Staff shall be able to export issue reports as CSV or PDF files for offline analysis or official documentation.
+
+e.Administrator features:
+Role-Based Access Control: The system shall enforce role-based access control (RBAC), ensuring users cannot access staff-only endpoints or views.
+Issue Search: Users and staff shall be able to search issues by keyword, category, or geographic area.
+Audit Log: The system shall maintain an audit log of all status changes, assignments, and administrative actions, recording the actor, timestamp, and change made.
+
+
+
+Acceptance criteria for some functional requirements:
+
+1.User Authentication Acceptance Criteria:(One for one)
+User enters a valid email and password on the login form
+System verifies credentials against the database using cryptographic comparison(?)
+A JWT token is issued and stored client-side upon successful login
+User is redirected to their appropriate dashboard based on role (citizen or staff)
+An error message is displayed for invalid email/password combinations
+A separate error message is shown if the account does not exist
+The JWT token expires after a defined period, requiring re-login
+
+2.Issue Submission Acceptance Criteria:
+Authenticated citizen can access the issue submission form
+Form requires title, description, and category before submission is allowed
+Citizen can place a pin on the interactive map to specify the issue location
+Submission is blocked with a validation message if required fields are missing
+Submitted issue is saved to the database and assigned a unique reference ID
+Issue appears immediately on the map with a "Pending" status pin
+Citizen is redirected to a confirmation screen showing the reference ID after submission 
+
+3. Issue Dashboard (Staff) Acceptance Criteria:
+Staff member can access the dashboard after logging in with a staff-role account
+Dashboard loads and displays all submitted issues in a list or table view
+Each issue entry shows title, category, status, submission date, and location
+Staff can filter issues by status (Pending, In Progress, Resolved)
+Staff can filter issues by category (e.g., pothole, graffiti, streetlight)
+Staff can sort issues by date submitted (newest/oldest)
+
+4. Status Update Acceptance Criteria:
+Staff can open any issue from the dashboard and view its full details
+A dropdown or set of buttons allows selecting a new status (Pending → In Progress → Resolved)
+Staff is required to enter a status-change note before confirming the update
+The status change is saved to the database with a timestamp and the acting staff member's ID
+The issue's status pin on the public map updates to reflect the new status
+The citizen who submitted the issue receives an email notification of the change
+An entry is added to the audit log recording the change, actor, and timestamp
+
+5.Role-Based Access Control Acceptance Criteria:
+Each user account in the database has an assigned role (citizen or staff)
+All protected API endpoints check the JWT token and extract the user's role
+Citizens attempting to access staff-only endpoints receive a 403 Forbidden response
+Staff-only UI routes (e.g., dashboard, assignment panel) are hidden from citizen accounts
+A citizen cannot elevate their own role through any API call or UI action
+Role is validated on every request, not just at login
+Unauthenticated users attempting to access any protected route are redirected to the login page
+
+
+Non functional requirements:
+
+1.Load Bearing:
+Response Time: The system shall respond to any API request within 2 seconds under normal load conditions.
+Map Load Time: The interactive map shall fully render with all issue pins within 3 seconds of page load.
+
+2.Security:
+Password Storage: All user passwords shall be stored as bcrypt hashes; plaintext passwords shall never be persisted. 
+Token Expiry: JWT tokens shall expire after a maximum of 24 hours, requiring re-authentication. 
+HTTPS Enforcement: All client-server communication shall be encrypted via HTTPS in the production environment.
+Input Validation: All user inputs shall be validated and sanitized on the server side to prevent SQL injection and XSS attacks. 
+CORS Policy: The API shall only accept cross-origin requests from explicitly whitelisted frontend origins.
+
+3.Usability:
+Responsiveness: The UI shall be fully usable on desktop, tablet, and mobile screen sizes without loss of functionality. 
+Accessibility: The system shall follow WCAG 2.1 Level AA accessibility guidelines, including keyboard navigation and sufficient color contrast. 
+Intuitive Navigation: A first-time user shall be able to submit an issue without any external guidance within 3 minutes. 
+Error Feedback: The system shall display clear, human-readable error messages for all failed operations, avoiding raw technical output.
+
+4.Reliability & Availability
+Uptime: The system shall maintain at least 99% uptime during business hours in the production environment. 
+Data Persistence: No submitted issue data shall be lost in the event of an unexpected server restart. 
+Graceful Degradation: If the map tile provider is unavailable, the system shall still allow issue submission using manual coordinate input.
+Concurrent Users: The system shall support at least 100 concurrent users without degradation in response time.
+
+5.Maintainability:
+Code Modularity: The codebase shall be organized into clearly separated modules (routes, models, utils, components) to facilitate independent maintenance. 
+Test Coverage: The backend shall maintain a minimum of 70% unit test coverage across all routes and utility functions. 
+API Documentation: All API endpoints shall be documented with their expected inputs, outputs, and error codes.
+
+6.Scalability:
+Database Scalability: The database schema shall support at least 100,000 issue records without requiring structural changes.
+Deployment Portability: The application shall be deployable to any standard cloud platform (Railway, Render, or equivalent) without environment-specific code changes.
+
+
+Acceptance Criteria for 5 Non-Functional Requirements
+
+1.Password Storage Acceptance Criteria:
+Passwords are hashed using bcrypt with a minimum cost factor of 10 before being written to the database
+A database inspection of any user record reveals no plaintext or reversibly-encoded password
+Login verification uses bcrypt's comparison function, not string equality
+Passwords are never logged in server logs, error messages, or API responses
+If a registration or password-change request fails, no partial plaintext data is persisted
+
+2.Input Validation Acceptance Criteria:
+All text fields submitted via API are stripped of leading/trailing whitespace before processing
+Inputs containing SQL special characters (e.g., ', --, ;) are safely handled via parameterized queries and do not alter database behavior
+Inputs containing HTML/script tags (e.g., <script>alert()</script>) are escaped or rejected and never rendered as executable markup
+Fields with defined maximum lengths reject input that exceeds those limits with a 400 response
+Validation errors return a structured JSON response specifying which field failed and why
+
+3.Responsiveness Acceptance Criteria:
+All interactive elements (buttons, forms, map controls) remain fully tappable and functional on a mobile touchscreen
+The application layout adjusts correctly at breakpoints for mobile (≤ 768px), tablet (769px–1024px), and desktop (≥ 1025px)
+No horizontal scrolling occurs on any page at any of the defined breakpoints
+Font sizes remain legible (minimum 14px body text) across all screen sizes
+The issue submission form and map pin placement are both operable on a mobile device without zooming
+
+4.Uptime Acceptance Criteria:
+The application is deployed on a platform with automatic restart on crash (e.g., Railway or Render process monitoring)
+Scheduled downtime (e.g., deployments) is planned outside of peak business hours where possible
+The system remains available and returns valid responses during a rolling frontend or backend redeploy
+A health-check endpoint (e.g., GET /health) returns HTTP 200 within 1 second when the system is operational
+Unplanned downtime in any given month does not exceed a cumulative 7.2 minutes (equivalent to 99% uptime over business hours)
+
+5.Test Coverage Acceptance Criteria:
+Running the test suite with pytest --cov reports a minimum of 70% line coverage across all backend modules
+All critical route handlers (auth, issue submission, status update, RBAC enforcement) have at least one dedicated unit test
+Tests cover both success paths and expected failure paths (e.g., missing fields, unauthorized access, invalid tokens)
+The test suite runs to completion with 0 failures on a clean environment using only the project's listed dependencies
+Coverage reports are generated and readable without requiring additional manual configuration
+
+5.Application Specifications (How the system is built technically)
+
+a. Architecture
+The Urban Issue Tracker is built on a three-tier architecture consisting of a frontend presentation layer, a backend application layer, and a PostgreSQL database layer.
+The frontend is built with React and Vite and provides separate role-based interfaces for Citizens, Staff, and Admins. It handles client-side routing, form interactions, map-based location selection, and real-time UI updates. All data is fetched from the backend via HTTP requests using Axios.
+The backend is built with Python Flask, organized into modular route blueprints covering authentication, reports, and admin operations. It enforces business rules, validates input, checks role permissions using JWT claims, and processes all requests before communicating with the database.
+The data layer uses PostgreSQL for all persistent storage. Uploaded report images are stored on the server file system, with their metadata (URL, stage, uploader, timestamp) stored in the database. Interaction flow: the user acts in the frontend, the frontend sends an API request with a JWT token, the backend validates identity and role, updates the database, and returns a JSON response for the frontend to render.
+
+b. Database Model
+The database consists of eight tables with clearly defined relationships, constraints, and indexes.
+ 
+Core Tables
+•      Users — stores all accounts across roles. Fields include id, name, email, hashed password, role, is_active, reset_required, and created_at. Email uniqueness is enforced at the database level.
+•      Reports — stores all submitted urban issues. Fields include id, title, description, category, latitude, longitude, status, citizen_id, department, jurisdiction, created_at, updated_at, and cancelled_at. Status transitions are validated in the backend against a fixed set: submitted, under review, in progress, resolved, and cancelled.
+•      Staff Profiles — extends staff users with operational scope. Stores department and jurisdiction per staff member. Linked to users via foreign key with on-delete cascade.
+•      Categories — a simple lookup table for report categories used across citizen, staff, and admin flows.
+ 
+Supporting Tables
+•      Notifications — stores system messages to users when their report status changes. Foreign keys reference both users and reports.
+•      Report Images — stores metadata for before and after images attached to reports, including image URL, stage, uploader, and timestamp.
+•      Report Activity — an audit log recording all significant report events such as status changes, edits, and image uploads. Includes actor identity, role, action type, and detail.
+•      Token Blocklist — stores revoked JWT token IDs to support secure logout and session invalidation. Primary key is the unique token identifier (jti).
+ 
+Performance and integrity: indexes are defined on report created_at, report status, and activity/image history by report. Foreign keys and cascade rules preserve referential integrity across all tables.
+
+c. Technologies Used
+ 
+Frontend
+•      React 19 — component-based UI framework for maintainable, state-driven rendering
+•      React Router — role-based navigation and protected route handling
+•      Axios — centralized HTTP client with automatic JWT token refresh interceptor
+•      Leaflet + React-Leaflet — interactive map for geotagged report submission and visualization
+•      Vite — fast development server and optimized production build tooling
+ 
+Backend
+•      Python Flask — lightweight, modular REST API framework with blueprint-based routing
+•      Flask-JWT-Extended — access and refresh token management with custom identity claims
+•      Flask-CORS — controlled cross-origin communication between frontend and backend
+•      bcrypt — secure password hashing before storage
+•      psycopg2 — PostgreSQL database connectivity from Python
+ 
+Database and Storage
+•      PostgreSQL — relational database with strong constraint support, indexing, and transactional reliability
+•      Local server upload directory — practical file storage for report images
+ 
+Flask and PostgreSQL were selected for their clear structure and strong data consistency. React and Vite provide fast, responsive UI development. JWT and bcrypt together deliver scalable stateless authentication with secure credential handling. Leaflet was chosen specifically because geographic issue reporting is central to this application domain.
+
+
+d. User Interface Design
+The interface is role-oriented and task-focused. Navigation and page access are determined by the logged-in user's role, with immediate redirect after login to the appropriate dashboard.
+Citizen Interface
+•      Submit Report — form with title, category, description, and interactive map click to pin the exact location. Optional before-image upload is supported.
+•      My Reports — list of the citizen's own submissions with current status, SLA indicators, and a detail modal showing activity timeline, progress history, and attached images. Edit and cancel are available for submitted reports.
+•      Public Track — allows anyone to search a report by ID without requiring full login, displaying status, activity history, and images for transparency.
+ 
+Staff Interface
+•      Dashboard with filterable and searchable report list, status update controls, and department assignment per report.
+•      List and map view modes for operational planning. Report detail modal includes activity feed and after-image upload for resolved issues.
+ 
+Admin Interface
+•      System statistics cards and trend analytics charts showing report activity over time by category and department.
+•      Staff account creation and management, category management, and user management including account disable and password reset.
+•      Monthly CSV and PDF export tools for offline reporting and analysis.
+ The UI is fully responsive for desktop and mobile use. Status badges, progress indicators, and toast notifications provide clear visual feedback. All key actions have dedicated buttons with confirmation where needed.
+
+
+e. Security Measures
+ 
+Authentication and Session Control
+•      JWT-based authentication with short-lived access tokens and longer-lived refresh tokens. The refresh endpoint allows seamless re-authentication without forcing the user to log in again.
+•      Logout revokes tokens through a database-backed token blocklist, preventing reuse of invalidated tokens.
+ 
+Password and Credential Protection
+•      All passwords are hashed using bcrypt before storage. Plain-text passwords are never persisted at any point.
+•      An admin-controlled password reset flow generates temporary credentials and sets a reset_required flag, forcing users to change their password on next login.
+ 
+Authorization and Access Control
+•      Role-based access control is enforced on all protected endpoints. The three roles — citizen, staff, and admin — each have clearly scoped permissions.
+•      Staff access is additionally restricted by department and jurisdiction, ensuring staff can only manage reports within their assigned scope.
+•      Disabled user accounts are blocked from all protected actions at the authorization layer.
+ 
+Input Validation and Data Protection
+•      All required request fields are validated server-side before processing. Report status values are checked against a fixed allowed set.
+•      File uploads are restricted by extension whitelist (png, jpg, jpeg, webp) and filenames are sanitized before saving to prevent path injection.
+•      Foreign keys and cascade rules prevent orphaned or invalid relational data. Activity logs provide full traceability for all report changes.
+•      CORS and Authorization header controls secure all frontend-backend communication. The public tracking endpoint intentionally exposes limited data only, keeping management actions restricted to authenticated roles.
