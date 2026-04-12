@@ -55,7 +55,7 @@ Audit Log: The system shall maintain an audit log of all status changes, assignm
 
 Acceptance criteria for some functional requirements:
 
-1.User Authentication Acceptance Criteria:(One for one)
+1.User Authentication Acceptance Criteria:
 User enters a valid email and password on the login form
 System verifies credentials against the database using cryptographic comparison(?)
 A JWT token is issued and stored client-side upon successful login
