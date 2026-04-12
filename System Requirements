@@ -29,7 +29,7 @@ As an administrator, I want to view SLA compliance reports so that I can identif
 As an administrator, I want to assign reports to specific departments so that the right team handles each type of issue.
 
 3. Functional Requirements:
-a.Citizen features:
+
 User Registration: The system shall allow users to register with a name, email address, and password to create an account.
 User Authentication: The system shall authenticate registered users via email and password, issuing a JWT (Jason Web Token) token upon success.
 Issue Submission: Authenticated users shall be able to submit a new issue by providing a title, description, category (e.g., pothole, streetlight, graffiti), and a map pin location.
@@ -37,24 +37,16 @@ Photo Attachment: Users shall be able to attach one or more photos to an issue r
 Public Issue Tracking: Users shall be able to track the status of their submitted issues (e.g., Pending, In Progress, Resolved) without requiring re-authentication via a public tracking link.
 Issue History: Authenticated users shall be able to view a list of all issues they have previously submitted, along with their current status.
 Map View: The system shall display all reported issues as pins on an interactive map (Leaflet.js), color-coded by status or category.
-
-b.Municipality staff:
 Staff Login: Municipality staff shall log in through the same authentication system but be granted a distinct "staff" or "admin" role with more permissions.
 Issue Dashboard: Staff shall have access to a dashboard listing all submitted issues, which can be filtered by status, category, date, and location.
 Issue Assignment: Staff shall be able to assign an issue to a specific department responsible for resolution.
 Status Update: Staff shall be able to update the status of any issue (e.g., from Pending to In Progress, or to Resolved).
 Issue Rejection: Staff shall be able to reject duplicate or invalid reports, providing a reason that is communicated back to the submitter.
 Resolution Notes: Staff shall be able to attach resolution notes when marking an issue as Resolved.
-
-c.Notifications features:
 Status Change Notification: The system shall notify a citizen via email whenever the status of their submitted issue changes.
 Submission Confirmation: The system shall send a confirmation email to the citizen upon successful issue submission, including a reference ID.
-
-d.Reporting features:
 Issue Statistics: The system shall generate summary statistics for staff, including total issues by category, average resolution time, and number of open vs. resolved issues.
 Export Report: Staff shall be able to export issue reports as CSV or PDF files for offline analysis or official documentation.
-
-e.Administrator features:
 Role-Based Access Control: The system shall enforce role-based access control (RBAC), ensuring users cannot access staff-only endpoints or views.
 Issue Search: Users and staff shall be able to search issues by keyword, category, or geographic area.
 Audit Log: The system shall maintain an audit log of all status changes, assignments, and administrative actions, recording the actor, timestamp, and change made.
