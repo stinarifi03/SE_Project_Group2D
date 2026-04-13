@@ -1,0 +1,13 @@
+cd /Users/stinarifi/urban-issue-tracker
+git checkout vanessa/citizen-experience
+git fetch origin
+git fetch group2d
+git pull --rebase group2d vanessa/citizen-experience
+
+git restore --source backend -- frontend/src/components/useToast.js
+git restore --source backend -- frontend/src/components/ToastContext.js
+git restore --source backend -- frontend/src/components/ToastProvider.jsx
+
+git add frontend/src/components/useToast.js frontend/src/components/ToastContext.js frontend/src/components/ToastProvider.jsx
+git commit -m "citizen: add toast context and hooks for feedback"
+git push group2d vanessa/citizen-experience
