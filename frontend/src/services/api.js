@@ -98,6 +98,7 @@ export const getAllReports = (params) => API.get('/reports', { params })
 export const updateStatus = (id, status) => API.patch(`/reports/${id}`, { status })
 export const assignDepartment = (id, payload) => API.patch(`/reports/${id}/department`, payload)
 export const getNotifications = () => API.get('/reports/notifications')
+export const markNotificationsRead = () => API.patch('/reports/notifications/read')
 export const getPublicReport = (id) => API.get(`/reports/public/${id}`)
 export const getReportActivity = (id) => API.get(`/reports/${id}/activity`)
 export const uploadReportImage = (id, file, stage = 'before') => {
@@ -121,6 +122,7 @@ export const deleteCategory = (id) => API.delete(`/admin/categories/${id}`)
 export const getUsers = () => API.get('/admin/users')
 export const disableUser = (id) => API.patch(`/admin/users/${id}/disable`)
 export const resetUserPassword = (id) => API.post(`/admin/users/${id}/reset-password`)
+export const enableUser = (id) => API.patch(`/admin/users/${id}/enable`)
 export const getTrends = (days = 30) => API.get('/admin/analytics/trends', { params: { days } })
 export const exportCsv = (month) => API.get('/admin/export/csv', {
   params: { month },
