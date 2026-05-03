@@ -5,6 +5,7 @@ import { useToast } from '../../components/useToast'
 
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { showToast } = useToast()
@@ -16,6 +17,10 @@ export default function Register() {
   const handleRegister = async (e) => {
     e.preventDefault()
     if (loading) return
+    if (form.password !== confirmPassword) {
+      showToast('Passwords do not match', 'error')
+      return
+    }
     setLoading(true)
     try {
       const res = await register(form)
@@ -96,6 +101,18 @@ export default function Register() {
             <div className="field">
               <label className="label">Password</label>
               <input type="password" name="password" placeholder="Create a secure password" className="input" onChange={handleChange} required />
+            </div>
+
+            <div className="field">
+              <label className="label">Confirm password</label>
+              <input
+                type="password"
+                placeholder="Re-enter your password"
+                className="input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
             </div>
 
             <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', marginTop: '.25rem' }}>
