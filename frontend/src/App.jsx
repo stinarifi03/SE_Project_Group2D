@@ -6,6 +6,7 @@ import MyReports from './pages/citizen/MyReports'
 import Dashboard from './pages/staff/Dashboard'
 import AdminPanel from './pages/admin/AdminPanel'
 import PublicTrack from './pages/citizen/PublicTrack'
+import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/ProtectedRoute'
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
             <AdminPanel />
           </ProtectedRoute>
         } />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )
