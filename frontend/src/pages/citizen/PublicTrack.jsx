@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getPublicReport, getErrorMessage } from '../../services/api'
 import { useToast } from '../../components/useToast'
 
@@ -28,7 +29,10 @@ export default function PublicTrack() {
       <section className="section">
         <div className="container" style={{ maxWidth: '900px' }}>
           <div className="panel panel-pad">
-            <h1 className="title" style={{ fontSize: '1.6rem' }}>Public Report Tracking</h1>
+            <div className="row" style={{ marginBottom: '.75rem' }}>
+              <h1 className="title" style={{ fontSize: '1.6rem' }}>Public Report Tracking</h1>
+              <Link to="/" className="btn btn-soft" style={{ textDecoration: 'none' }}>← Sign in</Link>
+            </div>
             <p className="subtitle">Track progress for any report by ID.</p>
 
             <form onSubmit={handleSearch} className="toolbar" style={{ marginTop: '.9rem', gridTemplateColumns: '1fr auto' }}>
