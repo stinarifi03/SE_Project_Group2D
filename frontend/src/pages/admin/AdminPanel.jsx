@@ -8,6 +8,7 @@ import {
   deleteCategory,
   getUsers,
   disableUser,
+  enableUser,
   resetUserPassword,
   getTrends,
   exportCsv,
@@ -29,6 +30,8 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true)
   const [days, setDays] = useState(30)
   const [exportMonth, setExportMonth] = useState('')
+  const [tempPassword, setTempPassword] = useState(null)
+  const [copied, setCopied] = useState(false)
   const navigate = useNavigate()
   const name = localStorage.getItem('name')
   const { showToast } = useToast()
@@ -102,7 +105,8 @@ export default function AdminPanel() {
     }
   }
 
-  const handleDeleteCategory = async (id) => {
+  const handleDeleteCategory = async (id, catName) => {
+    if (!window.confirm(`Delete category "${catName}"? This cannot be undone.`)) return
     try {
       await deleteCategory(id)
       await fetchAll()
@@ -112,7 +116,8 @@ export default function AdminPanel() {
     }
   }
 
-  const handleDisableUser = async (id) => {
+  const handleDisableUser = async (id, userName) => {
+    if (!window.confirm(`Disable account for "${userName}"? They will not be able to log in.`)) return
     try {
       await disableUser(id)
       await fetchAll()
@@ -122,13 +127,31 @@ export default function AdminPanel() {
     }
   }
 
+  const handleEnableUser = async (id) => {
+    try {
+      await enableUser(id)
+      await fetchAll()
+      showToast('User enabled', 'success')
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Failed to enable user'), 'error')
+    }
+  }
+
   const handleResetPassword = async (id) => {
     try {
       const res = await resetUserPassword(id)
-      showToast(`Temporary password: ${res.data.temporary_password}`, 'success')
+      setTempPassword(res.data.temporary_password)
+      setCopied(false)
     } catch (err) {
       showToast(getErrorMessage(err, 'Failed to reset password'), 'error')
     }
+  }
+
+  const handleCopyPassword = () => {
+    navigator.clipboard.writeText(tempPassword).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
   const downloadBlob = (blob, filename) => {
@@ -199,6 +222,38 @@ export default function AdminPanel() {
 
       <section className="section">
         <div className="container">
+
+          {/* Temp password modal */}
+          {tempPassword && (
+            <div className="modal" onClick={() => setTempPassword(null)}>
+              <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+                <h2 className="title" style={{ fontSize: '1.2rem', marginBottom: '.5rem' }}>Temporary Password</h2>
+                <p className="subtitle" style={{ marginBottom: '.8rem' }}>
+                  Share this with the user. They should change it after logging in.
+                </p>
+                <div style={{
+                  background: '#f0f6ff',
+                  border: '1px solid #c5d9f5',
+                  borderRadius: '.75rem',
+                  padding: '.75rem 1rem',
+                  fontFamily: 'monospace',
+                  fontSize: '1.05rem',
+                  letterSpacing: '.03em',
+                  wordBreak: 'break-all',
+                  marginBottom: '.75rem'
+                }}>
+                  {tempPassword}
+                </div>
+                <div className="controls">
+                  <button className="btn btn-primary" onClick={handleCopyPassword}>
+                    {copied ? '✓ Copied' : 'Copy to clipboard'}
+                  </button>
+                  <button className="btn btn-soft" onClick={() => setTempPassword(null)}>Close</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <h2 className="title" style={{ fontSize: '1.45rem' }}>System Statistics</h2>
           {loading ? (
             <p className="muted" style={{ marginTop: '.55rem' }}>Loading stats...</p>
@@ -277,7 +332,12 @@ export default function AdminPanel() {
               {categories.map((cat) => (
                 <span key={cat.id} className="pill">
                   {cat.name}
-                  <button onClick={() => handleDeleteCategory(cat.id)} style={{ border: 'none', background: 'transparent', color: '#c93f46', fontWeight: 800, cursor: 'pointer' }}>✕</button>
+                  <button
+                    onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                    style={{ border: 'none', background: 'transparent', color: '#c93f46', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    ✕
+                  </button>
                 </span>
               ))}
             </div>
@@ -308,8 +368,11 @@ export default function AdminPanel() {
                     </td>
                     <td style={{ padding: '.58rem 0', borderBottom: '1px solid #eef3fb' }}>
                       <div className="controls">
-                        {u.is_active && <button className="btn btn-soft" onClick={() => handleDisableUser(u.id)}>Disable</button>}
-                        <button className="btn btn-primary" onClick={() => handleResetPassword(u.id)}>Reset Password</button>
+                        {u.is_active
+                          ? <button className="btn btn-soft" onClick={() => handleDisableUser(u.id, u.name)}>Disable</button>
+                          : <button className="btn btn-primary" onClick={() => handleEnableUser(u.id)}>Enable</button>
+                        }
+                        <button className="btn btn-soft" onClick={() => handleResetPassword(u.id)}>Reset Password</button>
                       </div>
                     </td>
                   </tr>
