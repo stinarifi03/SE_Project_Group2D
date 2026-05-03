@@ -1,17 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   getMyReports,
   getNotifications,
+  markNotificationsRead,
   editReport,
   cancelReport,
   getReportActivity,
   uploadReportImage,
   getPublicReport,
+  getCategories,
   getErrorMessage,
   logout,
 } from '../../services/api'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../components/useToast'
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 
 export default function MyReports() {
   const [reports, setReports] = useState([])
@@ -21,10 +25,12 @@ export default function MyReports() {
   const [selectedReport, setSelectedReport] = useState(null)
   const [activities, setActivities] = useState([])
   const [images, setImages] = useState([])
+  const [categories, setCategories] = useState([])
   const [editForm, setEditForm] = useState({ title: '', description: '', category: '' })
   const [editing, setEditing] = useState(false)
   const [uploadStage, setUploadStage] = useState('before')
   const [imageFile, setImageFile] = useState(null)
+  const notifRef = useRef(null)
   const navigate = useNavigate()
   const name = localStorage.getItem('name')
   const { showToast } = useToast()
@@ -32,11 +38,12 @@ export default function MyReports() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [reportsRes, notifRes] = await Promise.all([
-          getMyReports(), getNotifications()
+        const [reportsRes, notifRes, catsRes] = await Promise.all([
+          getMyReports(), getNotifications(), getCategories()
         ])
         setReports(reportsRes.data)
         setNotifications(notifRes.data)
+        setCategories(catsRes.data)
       } catch {
         showToast('Failed to load data.', 'error')
       } finally {
@@ -45,6 +52,18 @@ export default function MyReports() {
     }
     fetchAll()
   }, [showToast])
+
+  // Close notification dropdown on outside click
+  useEffect(() => {
+    if (!showNotifications) return
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showNotifications])
 
   const openReport = async (report) => {
     setSelectedReport(report)
@@ -69,11 +88,15 @@ export default function MyReports() {
   }
 
   const refreshReports = async () => {
-    const reportsRes = await getMyReports()
-    setReports(reportsRes.data)
-    if (selectedReport) {
-      const fresh = reportsRes.data.find((r) => r.id === selectedReport.id)
-      if (fresh) setSelectedReport(fresh)
+    try {
+      const reportsRes = await getMyReports()
+      setReports(reportsRes.data)
+      if (selectedReport) {
+        const fresh = reportsRes.data.find((r) => r.id === selectedReport.id)
+        if (fresh) setSelectedReport(fresh)
+      }
+    } catch {
+      showToast('Failed to refresh reports', 'error')
     }
   }
 
@@ -94,6 +117,7 @@ export default function MyReports() {
   }
 
   const handleCancelReport = async (reportId) => {
+    if (!window.confirm('Cancel this report? This cannot be undone.')) return
     try {
       await cancelReport(reportId)
       showToast('Report cancelled', 'success')
@@ -115,6 +139,29 @@ export default function MyReports() {
       setImages(publicRes.data.images || [])
     } catch (err) {
       showToast(getErrorMessage(err, 'Failed to upload image'), 'error')
+    }
+  }
+
+  const handleImageFileChange = (e) => {
+    const file = e.target.files?.[0] || null
+    if (file && file.size > MAX_FILE_SIZE) {
+      showToast('Image must be smaller than 5 MB', 'error')
+      e.target.value = ''
+      return
+    }
+    setImageFile(file)
+  }
+
+  const handleOpenNotifications = async () => {
+    const next = !showNotifications
+    setShowNotifications(next)
+    if (next && notifications.some(n => !n.is_read)) {
+      try {
+        await markNotificationsRead()
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+      } catch {
+        // non-critical — ignore silently
+      }
     }
   }
 
@@ -141,44 +188,46 @@ export default function MyReports() {
 
           <div className="actions" style={{ position: 'relative' }}>
             <button onClick={() => navigate('/submit')} className="btn btn-primary">+ New Report</button>
-            <button onClick={() => setShowNotifications(!showNotifications)} className="btn btn-soft" style={{ position: 'relative' }}>
-              Notifications
-              {unreadCount > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-6px',
-                  right: '-6px',
-                  width: '18px',
-                  height: '18px',
-                  borderRadius: '999px',
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontSize: '.7rem',
-                  color: '#fff',
-                  background: '#f1585c'
-                }}>
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {showNotifications && (
-              <div className="notification-box">
-                <div style={{ padding: '.8rem', fontWeight: 800 }}>🔔 Notifications</div>
-                {notifications.length === 0 ? (
-                  <p className="notification-item muted">No notifications yet.</p>
-                ) : (
-                  notifications.map(n => (
-                    <div key={n.id} className="notification-item" style={{ background: !n.is_read ? '#eff6ff' : '#fff' }}>
-                      <p style={{ margin: 0 }}>{n.message}</p>
-                      <p className="muted" style={{ margin: '.35rem 0 0', fontSize: '.75rem' }}>
-                        {new Date(n.sent_at).toLocaleString()}
-                      </p>
-                    </div>
-                  ))
+            <div ref={notifRef} style={{ position: 'relative' }}>
+              <button onClick={handleOpenNotifications} className="btn btn-soft" style={{ position: 'relative' }}>
+                Notifications
+                {unreadCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '999px',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontSize: '.7rem',
+                    color: '#fff',
+                    background: '#f1585c'
+                  }}>
+                    {unreadCount}
+                  </span>
                 )}
-              </div>
-            )}
+              </button>
+
+              {showNotifications && (
+                <div className="notification-box">
+                  <div style={{ padding: '.8rem', fontWeight: 800 }}>🔔 Notifications</div>
+                  {notifications.length === 0 ? (
+                    <p className="notification-item muted">No notifications yet.</p>
+                  ) : (
+                    notifications.map(n => (
+                      <div key={n.id} className="notification-item" style={{ background: !n.is_read ? '#eff6ff' : '#fff' }}>
+                        <p style={{ margin: 0 }}>{n.message}</p>
+                        <p className="muted" style={{ margin: '.35rem 0 0', fontSize: '.75rem' }}>
+                          {new Date(n.sent_at).toLocaleString()}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
 
             <button
               onClick={async () => {
@@ -293,7 +342,16 @@ export default function MyReports() {
                   </div>
                   <div className="field">
                     <label className="label">Category</label>
-                    <input className="input" value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })} />
+                    <select
+                      className="select"
+                      value={editForm.category}
+                      onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                    >
+                      <option value="">Select category</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.name.toLowerCase()}>{cat.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="controls">
                     <button className="btn btn-primary" onClick={handleEditSave}>Save</button>
@@ -325,7 +383,13 @@ export default function MyReports() {
                   <option value="before">Before</option>
                   <option value="after">After</option>
                 </select>
-                <input type="file" accept="image/*" className="input" onChange={(e) => setImageFile(e.target.files?.[0] || null)} style={{ maxWidth: '220px' }} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="input"
+                  onChange={handleImageFileChange}
+                  style={{ maxWidth: '220px' }}
+                />
                 <button className="btn btn-primary" onClick={handleUploadImage} disabled={!imageFile}>Upload</button>
               </div>
             </div>
