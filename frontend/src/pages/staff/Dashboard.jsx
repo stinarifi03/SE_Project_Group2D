@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   getAllReports,
+  getStats,
   updateStatus,
   assignDepartment,
   getCategories,
@@ -13,14 +14,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../components/useToast'
 import 'leaflet/dist/leaflet.css'
-import L from 'leaflet'
-
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-})
+import '../../utils/leafletIcons'
 
 const departments = ['Roads', 'Electricity', 'Sanitation', 'Parks', 'Other']
 const statuses = ['submitted', 'under review', 'in progress', 'resolved']
@@ -28,6 +22,7 @@ const statuses = ['submitted', 'under review', 'in progress', 'resolved']
 export default function Dashboard() {
   const [reports, setReports] = useState([])
   const [categories, setCategories] = useState([])
+  const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
@@ -63,10 +58,11 @@ export default function Dashboard() {
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const catsRes = await getCategories()
+        const [catsRes, statsRes] = await Promise.all([getCategories(), getStats()])
         setCategories(catsRes.data)
+        setStats(statsRes.data)
       } catch {
-        showToast('Failed to load categories', 'error')
+        showToast('Failed to load dashboard data', 'error')
       }
       await loadReports(1)
     }
@@ -145,6 +141,13 @@ export default function Dashboard() {
     return 'badge submitted'
   }
 
+  const statCards = stats ? [
+    { label: 'Submitted', value: stats.submitted },
+    { label: 'Under Review', value: stats.under_review },
+    { label: 'In Progress', value: stats.in_progress },
+    { label: 'Resolved', value: stats.resolved },
+  ] : []
+
   return (
     <div className="page">
       <header className="topbar">
@@ -175,16 +178,16 @@ export default function Dashboard() {
 
       <section className="section">
         <div className="container">
-          <div className="stats-grid">
-            {statuses.map((s) => (
-              <div key={s} className="stat-card">
-                <div className="stat-value" style={{ color: '#0f5de8' }}>
-                  {reports.filter((r) => r.status === s).length}
+          {statCards.length > 0 && (
+            <div className="stats-grid" style={{ marginBottom: '1rem' }}>
+              {statCards.map((card) => (
+                <div key={card.label} className="stat-card">
+                  <div className="stat-value" style={{ color: '#0f5de8' }}>{card.value}</div>
+                  <div className="muted" style={{ textTransform: 'capitalize', fontSize: '.82rem' }}>{card.label}</div>
                 </div>
-                <div className="muted" style={{ textTransform: 'capitalize', fontSize: '.82rem' }}>{s}</div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="toolbar" style={{ marginTop: '1rem' }}>
             <input
@@ -233,7 +236,7 @@ export default function Dashboard() {
 
                   <div className="controls" onClick={(e) => e.stopPropagation()}>
                     <select
-                      defaultValue={report.status}
+                      value={report.status}
                       onChange={(e) => handleStatusUpdate(report.id, e.target.value)}
                       className="select"
                       style={{ width: '170px' }}
@@ -241,7 +244,7 @@ export default function Dashboard() {
                       {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <select
-                      defaultValue={report.department || ''}
+                      value={report.department || ''}
                       onChange={(e) => handleDepartmentAssign(report.id, e.target.value)}
                       className="select"
                       style={{ width: '190px' }}
