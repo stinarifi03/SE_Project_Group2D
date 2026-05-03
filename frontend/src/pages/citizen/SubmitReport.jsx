@@ -4,14 +4,9 @@ import { submitReport, getCategories, uploadReportImage, getErrorMessage, logout
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '../../components/useToast'
 import 'leaflet/dist/leaflet.css'
-import L from 'leaflet'
+import '../../utils/leafletIcons'
 
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-})
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 
 function LocationPicker({ onSelect }) {
   useMapEvents({
@@ -44,6 +39,16 @@ export default function SubmitReport() {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0] || null
+    if (file && file.size > MAX_FILE_SIZE) {
+      showToast('Image must be smaller than 5 MB', 'error')
+      e.target.value = ''
+      return
+    }
+    setBeforeImage(file)
   }
 
   const handleSubmit = async (e) => {
@@ -128,12 +133,12 @@ export default function SubmitReport() {
               </div>
 
               <div className="field">
-                <label className="label">Before image (optional)</label>
+                <label className="label">Before image (optional, max 5 MB)</label>
                 <input
                   type="file"
                   accept="image/*"
                   className="input"
-                  onChange={(e) => setBeforeImage(e.target.files?.[0] || null)}
+                  onChange={handleImageChange}
                 />
               </div>
 
