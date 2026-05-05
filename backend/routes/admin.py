@@ -155,12 +155,6 @@ def get_users():
     finally:
         cur.close()
         conn.close()
-<<<<<<< HEAD
-        
-=======
-
-
->>>>>>> 22f71f3d9e23168a02715e4b4fbaf613b1330b11
 @admin_bp.route('/users/<int:user_id>/disable', methods=['PATCH'])
 @roles_required('admin')
 def disable_user(user_id):
