@@ -155,8 +155,7 @@ def get_users():
     finally:
         cur.close()
         conn.close()
-
-
+        
 @admin_bp.route('/users/<int:user_id>/disable', methods=['PATCH'])
 @roles_required('admin')
 def disable_user(user_id):
@@ -166,6 +165,23 @@ def disable_user(user_id):
         cur.execute('UPDATE users SET is_active = FALSE WHERE id = %s', (user_id,))
         conn.commit()
         return jsonify({'message': 'User disabled'}), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@admin_bp.route('/users/<int:user_id>/enable', methods=['PATCH'])
+@roles_required('admin')
+def enable_user(user_id):
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute('UPDATE users SET is_active = TRUE WHERE id = %s', (user_id,))
+        conn.commit()
+        return jsonify({'message': 'User enabled'}), 200
     except Exception as e:
         import traceback
         traceback.print_exc()
