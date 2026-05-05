@@ -61,6 +61,19 @@ def register():
     if not name or not email or not password:
         return jsonify({'error': 'All fields are required'}), 400
 
+    name = name.strip()
+    email = email.strip().lower()
+    password = password.strip()
+
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        return jsonify({'error': 'Invalid email format'}), 400
+
+    if len(password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters'}), 400
+
+    if len(name) < 2:
+        return jsonify({'error': 'Name must be at least 2 characters'}), 400
+
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     try:
@@ -112,9 +125,12 @@ def login():
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         return response, 200
 
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    password = (data.get('password') or '').strip()
+
+    if not email or not password:
+        return jsonify({'error': 'Email and password are required'}), 400
 
     try:
         conn = get_db()
