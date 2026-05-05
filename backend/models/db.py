@@ -65,6 +65,21 @@ def init_schema():
         )
 
         cur.execute(
+            '''CREATE TABLE IF NOT EXISTS notifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                report_id INTEGER REFERENCES reports(id) ON DELETE CASCADE,
+                message TEXT NOT NULL,
+                is_read BOOLEAN DEFAULT FALSE,
+                sent_at TIMESTAMP DEFAULT NOW()
+              )'''
+        )
+        
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id, sent_at DESC)"
+        )
+
+        cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_reports_created_at ON reports(created_at DESC)"
         )
         cur.execute(
