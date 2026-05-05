@@ -8,9 +8,11 @@ import AdminPanel from './pages/admin/AdminPanel'
 import PublicTrack from './pages/citizen/PublicTrack'
 import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/ProtectedRoute'
+import { ToastProvider } from './components/ToastProvider'
 
 export default function App() {
   return (
+    <ToastProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
@@ -40,5 +42,6 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
+    </ToastProvider>
   )
 }
