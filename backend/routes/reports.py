@@ -568,3 +568,24 @@ def get_notifications():
     finally:
         cur.close()
         conn.close()
+    
+@reports_bp.route('/notifications/read', methods=['PATCH'])
+@roles_required('citizen', 'staff', 'admin')
+def mark_notifications_read():
+    user = get_current_user()
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            'UPDATE notifications SET is_read = TRUE WHERE user_id = %s',
+            (user['id'],)
+        )
+        conn.commit()
+        return jsonify({'message': 'Notifications marked as read'}), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
