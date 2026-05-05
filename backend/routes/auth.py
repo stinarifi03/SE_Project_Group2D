@@ -130,6 +130,7 @@ def login():
     password = (data.get('password') or '').strip()
 
     # Validate fields are present
+
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
 

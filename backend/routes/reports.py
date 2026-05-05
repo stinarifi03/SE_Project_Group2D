@@ -568,7 +568,7 @@ def get_notifications():
     finally:
         cur.close()
         conn.close()
-    
+
 @reports_bp.route('/notifications/read', methods=['PATCH'])
 @roles_required('citizen', 'staff', 'admin')
 def mark_notifications_read():
