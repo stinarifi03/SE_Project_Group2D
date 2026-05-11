@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
   getAllReports,
-  getStats,
   updateStatus,
-  assignDepartment,
   getCategories,
   getReportActivity,
+  cancelReport,
   uploadReportImage,
   getErrorMessage,
   logout,
@@ -16,13 +15,11 @@ import { useToast } from '../../components/useToast'
 import 'leaflet/dist/leaflet.css'
 import '../../utils/leafletIcons'
 
-const departments = ['Roads', 'Electricity', 'Sanitation', 'Parks', 'Other']
 const statuses = ['submitted', 'under review', 'in progress', 'resolved']
 
 export default function Dashboard() {
   const [reports, setReports] = useState([])
   const [categories, setCategories] = useState([])
-  const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
@@ -34,6 +31,7 @@ export default function Dashboard() {
   const [meta, setMeta] = useState({ page: 1, page_size: 20, pages: 1, total: 0 })
   const navigate = useNavigate()
   const name = localStorage.getItem('name')
+  const role = localStorage.getItem('role')
   const { showToast } = useToast()
 
   const loadReports = async (page = 1) => {
@@ -58,9 +56,8 @@ export default function Dashboard() {
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const [catsRes, statsRes] = await Promise.all([getCategories(), getStats()])
+        const catsRes = await getCategories()
         setCategories(catsRes.data)
-        setStats(statsRes.data)
       } catch {
         showToast('Failed to load dashboard data', 'error')
       }
@@ -107,17 +104,17 @@ export default function Dashboard() {
     }
   }
 
-  const handleDepartmentAssign = async (id, department) => {
+  const handleCancelReport = async (reportId) => {
+    if (!window.confirm('Cancel this report? This cannot be undone.')) return
     try {
-      await assignDepartment(id, { department })
-      showToast('Department assigned', 'success')
+      await cancelReport(reportId)
+      showToast('Report cancelled', 'success')
       await refreshCurrentPage()
-      if (selectedReport && selectedReport.id === id) {
-        const activityRes = await getReportActivity(id)
-        setActivities(activityRes.data)
+      if (selectedReport && selectedReport.id === reportId) {
+        setSelectedReport(null)
       }
     } catch (err) {
-      showToast(getErrorMessage(err, 'Failed to assign department.'), 'error')
+      showToast(getErrorMessage(err, 'Failed to cancel report'), 'error')
     }
   }
 
@@ -140,13 +137,6 @@ export default function Dashboard() {
     if (status === 'resolved') return 'badge resolved'
     return 'badge submitted'
   }
-
-  const statCards = stats ? [
-    { label: 'Submitted', value: stats.submitted },
-    { label: 'Under Review', value: stats.under_review },
-    { label: 'In Progress', value: stats.in_progress },
-    { label: 'Resolved', value: stats.resolved },
-  ] : []
 
   return (
     <div className="page">
@@ -178,17 +168,6 @@ export default function Dashboard() {
 
       <section className="section">
         <div className="container">
-          {statCards.length > 0 && (
-            <div className="stats-grid" style={{ marginBottom: '1rem' }}>
-              {statCards.map((card) => (
-                <div key={card.label} className="stat-card">
-                  <div className="stat-value" style={{ color: '#0f5de8' }}>{card.value}</div>
-                  <div className="muted" style={{ textTransform: 'capitalize', fontSize: '.82rem' }}>{card.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
           <div className="toolbar" style={{ marginTop: '1rem' }}>
             <input
               type="text"
@@ -243,15 +222,9 @@ export default function Dashboard() {
                     >
                       {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
-                    <select
-                      value={report.department || ''}
-                      onChange={(e) => handleDepartmentAssign(report.id, e.target.value)}
-                      className="select"
-                      style={{ width: '190px' }}
-                    >
-                      <option value="">Assign Department</option>
-                      {departments.map((d) => <option key={d} value={d}>{d}</option>)}
-                    </select>
+                    {role === 'admin' && report.status !== 'cancelled' && report.status !== 'resolved' && (
+                      <button className="btn btn-danger" onClick={() => handleCancelReport(report.id)}>Cancel</button>
+                    )}
                   </div>
                 </article>
               ))}
@@ -313,6 +286,14 @@ export default function Dashboard() {
               <p><strong>Department:</strong> {selectedReport.department || 'Unassigned'}</p>
               <p><strong>SLA:</strong> {selectedReport.sla_hours ? `${selectedReport.sla_hours}h` : 'n/a'} ({selectedReport.is_overdue ? 'Overdue' : 'Within SLA'})</p>
             </div>
+
+            {role === 'admin' && selectedReport.status !== 'cancelled' && selectedReport.status !== 'resolved' && (
+              <div style={{ marginTop: '.75rem' }}>
+                <button className="btn btn-danger" onClick={() => handleCancelReport(selectedReport.id)}>
+                  Cancel this report
+                </button>
+              </div>
+            )}
 
             <div className="panel panel-pad" style={{ marginTop: '.8rem' }}>
               <h3 style={{ marginTop: 0, marginBottom: '.4rem' }}>Upload after image</h3>

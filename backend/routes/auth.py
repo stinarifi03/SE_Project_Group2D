@@ -172,6 +172,19 @@ def login():
             additional_claims=build_token_claims(user_payload)
         )
         refresh_token = create_refresh_token(identity=str(user[0]))
+
+        reset_required = False
+        try:
+            conn2 = get_db()
+            cur2 = conn2.cursor()
+            cur2.execute('SELECT COALESCE(reset_required, FALSE) FROM users WHERE id = %s', (user[0],))
+            row = cur2.fetchone()
+            reset_required = bool(row[0]) if row else False
+            cur2.close()
+            conn2.close()
+        except Exception:
+            pass
+
         return jsonify({
             'token': access_token,
             'refresh_token': refresh_token,
@@ -179,6 +192,7 @@ def login():
             'name': user[1],
             'department': user[6],
             'jurisdiction': user[7],
+            'reset_required': reset_required,
         }), 200
 
     except Exception as e:
@@ -224,6 +238,40 @@ def logout():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/set-password', methods=['POST'])
+@jwt_required()
+def set_password():
+    identity = get_jwt_identity()
+    data = request.get_json() or {}
+    new_password = data.get('new_password', '').strip()
+    confirm_password = data.get('confirm_password', '').strip()
+
+    if not new_password or not confirm_password:
+        return jsonify({'error': 'Both fields are required'}), 400
+    if new_password != confirm_password:
+        return jsonify({'error': 'Passwords do not match'}), 400
+    if len(new_password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters'}), 400
+
+    hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            'UPDATE users SET password = %s, reset_required = FALSE WHERE id = %s',
+            (hashed, int(identity))
+        )
+        conn.commit()
+        return jsonify({'message': 'Password updated successfully'}), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
 
 
 @auth_bp.route('/admin/reset-password/<int:user_id>', methods=['POST'])

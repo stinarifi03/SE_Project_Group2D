@@ -124,6 +124,63 @@ def get_all_staff():
         conn.close()
 
 
+@admin_bp.route('/staff/<int:staff_id>', methods=['PATCH'])
+@roles_required('admin')
+def update_staff(staff_id):
+    data = request.get_json() or {}
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute('SELECT id FROM users WHERE id = %s AND role = %s', (staff_id, 'staff'))
+        if not cur.fetchone():
+            return jsonify({'error': 'Staff member not found'}), 404
+
+        if data.get('name'):
+            cur.execute('UPDATE users SET name = %s WHERE id = %s', (data['name'], staff_id))
+        if data.get('email'):
+            cur.execute('UPDATE users SET email = %s WHERE id = %s', (data['email'].strip().lower(), staff_id))
+
+        cur.execute(
+            '''INSERT INTO staff_profiles (user_id, department, jurisdiction)
+               VALUES (%s, %s, %s)
+               ON CONFLICT (user_id) DO UPDATE
+               SET department = COALESCE(EXCLUDED.department, staff_profiles.department),
+                   jurisdiction = COALESCE(EXCLUDED.jurisdiction, staff_profiles.jurisdiction)''',
+            (staff_id, data.get('department'), data.get('jurisdiction'))
+        )
+        conn.commit()
+        return jsonify({'message': 'Staff updated'}), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@admin_bp.route('/staff/<int:staff_id>', methods=['DELETE'])
+@roles_required('admin')
+def delete_staff(staff_id):
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute('SELECT id FROM users WHERE id = %s AND role = %s', (staff_id, 'staff'))
+        if not cur.fetchone():
+            return jsonify({'error': 'Staff member not found'}), 404
+
+        cur.execute('DELETE FROM users WHERE id = %s', (staff_id,))
+        conn.commit()
+        return jsonify({'message': 'Staff deleted'}), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
 @admin_bp.route('/users', methods=['GET'])
 @roles_required('admin')
 def get_users():
@@ -383,15 +440,100 @@ def export_pdf():
         conn.close()
 
 
+@admin_bp.route('/departments', methods=['GET'])
+@roles_required('admin', 'staff', 'citizen')
+def get_departments():
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT id, name FROM departments ORDER BY name")
+        rows = cur.fetchall()
+        return jsonify([{'id': r[0], 'name': r[1]} for r in rows]), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@admin_bp.route('/departments', methods=['POST'])
+@roles_required('admin')
+def add_department():
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    if not name:
+        return jsonify({'error': 'Department name is required'}), 400
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute('INSERT INTO departments (name) VALUES (%s) RETURNING id, name', (name,))
+        dept = cur.fetchone()
+        conn.commit()
+        return jsonify({'id': dept[0], 'name': dept[1]}), 201
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@admin_bp.route('/departments/<int:dept_id>', methods=['DELETE'])
+@roles_required('admin')
+def delete_department(dept_id):
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute('DELETE FROM departments WHERE id = %s', (dept_id,))
+        conn.commit()
+        return jsonify({'message': 'Department deleted'}), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
 @admin_bp.route('/categories', methods=['GET'])
 @roles_required('admin', 'staff', 'citizen')
 def get_categories():
     conn = get_db()
     cur = conn.cursor()
     try:
-        cur.execute("SELECT id, name FROM categories ORDER BY id")
+        cur.execute("SELECT id, name, department FROM categories ORDER BY id")
         rows = cur.fetchall()
-        return jsonify([{'id': r[0], 'name': r[1]} for r in rows]), 200
+        return jsonify([{'id': r[0], 'name': r[1], 'department': r[2]} for r in rows]), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@admin_bp.route('/categories/<int:category_id>', methods=['PATCH'])
+@roles_required('admin')
+def update_category(category_id):
+    data = request.get_json() or {}
+    department = data.get('department')  # None or '' clears the assignment
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute('SELECT id FROM categories WHERE id = %s', (category_id,))
+        if not cur.fetchone():
+            return jsonify({'error': 'Category not found'}), 404
+        cur.execute(
+            'UPDATE categories SET department = %s WHERE id = %s',
+            (department or None, category_id)
+        )
+        conn.commit()
+        return jsonify({'message': 'Category updated'}), 200
     except Exception as e:
         import traceback
         traceback.print_exc()

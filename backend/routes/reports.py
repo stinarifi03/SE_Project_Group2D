@@ -117,6 +117,13 @@ def submit_report():
     cur = conn.cursor()
     try:
         cur.execute(
+            'SELECT department FROM categories WHERE LOWER(name) = LOWER(%s)',
+            (data['category'],)
+        )
+        cat_row = cur.fetchone()
+        auto_department = cat_row[0] if cat_row and cat_row[0] else None
+
+        cur.execute(
             '''INSERT INTO reports
                (title, description, category, latitude, longitude, citizen_id, department, jurisdiction, status)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -128,7 +135,7 @@ def submit_report():
                 data['latitude'],
                 data['longitude'],
                 user['id'],
-                data.get('department'),
+                auto_department,
                 data.get('jurisdiction'),
                 'submitted',
             )
@@ -199,9 +206,12 @@ def get_all_reports():
         params.extend([f'%{search}%', f'%{search}%'])
 
     if user['role'] == 'staff':
-        if user.get('department'):
-            clauses.append('(r.department IS NULL OR LOWER(r.department) = LOWER(%s))')
-            params.append(user['department'])
+        staff_dept = (user.get('department') or '').strip().lower()
+        if staff_dept:
+            clauses.append(
+                "(r.department IS NULL OR r.department = '' OR LOWER(r.department) = %s)"
+            )
+            params.append(staff_dept)
         if user.get('jurisdiction'):
             jurisdictions = [j.strip() for j in user['jurisdiction'].split(',') if j.strip()]
             if jurisdictions:
@@ -214,21 +224,33 @@ def get_all_reports():
     conn = get_db()
     cur = conn.cursor()
     try:
-        cur.execute(f'''SELECT COUNT(*) FROM reports r WHERE {where_sql}''', tuple(params))
+        cur.execute(
+            f'''SELECT COUNT(*) FROM reports r
+                LEFT JOIN categories cat ON LOWER(cat.name) = LOWER(r.category)
+                WHERE {where_sql}''',
+            tuple(params)
+        )
         total = cur.fetchone()[0]
 
         paged_params = params + [page_size, offset]
         cur.execute(
             f'''SELECT r.id, r.title, r.description, r.status, r.category, r.latitude, r.longitude,
-                       r.department, r.jurisdiction, r.created_at, r.citizen_id, r.updated_at, r.cancelled_at
+                       r.department, r.jurisdiction, r.created_at, r.citizen_id, r.updated_at, r.cancelled_at,
+                       u.name AS citizen_name
                 FROM reports r
+                LEFT JOIN categories cat ON LOWER(cat.name) = LOWER(r.category)
+                LEFT JOIN users u ON u.id = r.citizen_id
                 WHERE {where_sql}
                 ORDER BY r.created_at DESC
                 LIMIT %s OFFSET %s''',
             tuple(paged_params)
         )
         rows = cur.fetchall()
-        reports = [_serialize_report(r) for r in rows]
+        reports = []
+        for r in rows:
+            serialized = _serialize_report(r)
+            serialized['citizen_name'] = r[13]
+            reports.append(serialized)
         return jsonify({
             'items': reports,
             'meta': {
@@ -410,7 +432,7 @@ def edit_report(report_id):
 
 
 @reports_bp.route('/<int:report_id>/cancel', methods=['PATCH'])
-@roles_required('citizen')
+@roles_required('citizen', 'admin')
 def cancel_report(report_id):
     user = get_current_user()
     conn = get_db()
@@ -420,10 +442,10 @@ def cancel_report(report_id):
         report = cur.fetchone()
         if not report:
             return jsonify({'error': 'Report not found'}), 404
-        if report[0] != user['id']:
+        if user['role'] == 'citizen' and report[0] != user['id']:
             return jsonify({'error': 'Forbidden'}), 403
-        if report[1] != 'submitted':
-            return jsonify({'error': 'Only submitted reports can be cancelled'}), 400
+        if report[1] in ('resolved', 'cancelled'):
+            return jsonify({'error': 'Resolved or already cancelled reports cannot be cancelled'}), 400
 
         cur.execute(
             '''UPDATE reports

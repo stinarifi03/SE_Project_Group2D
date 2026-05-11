@@ -80,6 +80,19 @@ def init_schema():
             "CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id, sent_at DESC)"
         )
 
+        cur.execute("ALTER TABLE categories ADD COLUMN IF NOT EXISTS department TEXT")
+
+        cur.execute(
+            '''CREATE TABLE IF NOT EXISTS departments (
+                   id SERIAL PRIMARY KEY,
+                   name TEXT NOT NULL UNIQUE
+               )'''
+        )
+        cur.execute("SELECT COUNT(*) FROM departments")
+        if cur.fetchone()[0] == 0:
+            for dept in ('Roads', 'Electricity', 'Sanitation', 'Parks', 'Other'):
+                cur.execute("INSERT INTO departments (name) VALUES (%s) ON CONFLICT DO NOTHING", (dept,))
+
         cur.execute(
             "CREATE INDEX IF NOT EXISTS idx_reports_created_at ON reports(created_at DESC)"
         )

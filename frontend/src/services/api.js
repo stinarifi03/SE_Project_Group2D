@@ -92,6 +92,7 @@ export const logout = async () => {
 
 export const login = (data) => API.post('/auth/login', data)
 export const register = (data) => API.post('/auth/register', data)
+export const setNewPassword = (data) => API.post('/auth/set-password', data)
 export const submitReport = (data) => API.post('/reports', data)
 export const getMyReports = () => API.get('/reports/my')
 export const getAllReports = (params) => API.get('/reports', { params })
@@ -116,14 +117,21 @@ export const cancelReport = (id) => API.patch(`/reports/${id}/cancel`)
 // Admin
 export const createStaff = (data) => API.post('/admin/staff', data)
 export const getAllStaff = () => API.get('/admin/staff')
+export const updateStaff = (id, data) => API.patch(`/admin/staff/${id}`, data)
+export const deleteStaff = (id) => API.delete(`/admin/staff/${id}`)
 export const getStats = () => API.get('/admin/stats')
 export const getCategories = () => API.get('/admin/categories')
 export const addCategory = (name) => API.post('/admin/categories', { name })
 export const deleteCategory = (id) => API.delete(`/admin/categories/${id}`)
+export const updateCategoryDepartment = (id, department) => API.patch(`/admin/categories/${id}`, { department })
 export const getUsers = () => API.get('/admin/users')
 export const disableUser = (id) => API.patch(`/admin/users/${id}/disable`)
 export const resetUserPassword = (id) => API.post(`/admin/users/${id}/reset-password`)
 export const enableUser = (id) => API.patch(`/admin/users/${id}/enable`)
+
+export const getDepartments = () => API.get('/admin/departments')
+export const addDepartment = (name) => API.post('/admin/departments', { name })
+export const deleteDepartment = (id) => API.delete(`/admin/departments/${id}`)
 
 export const getTrends = (days = 30) => API.get('/admin/analytics/trends', { params: { days } })
 export const exportCsv = (month) => API.get('/admin/export/csv', {
