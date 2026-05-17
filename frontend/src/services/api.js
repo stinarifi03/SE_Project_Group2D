@@ -66,6 +66,7 @@ API.interceptors.response.use(
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('role')
       localStorage.removeItem('name')
+      localStorage.removeItem('department')
       return Promise.reject(refreshErr)
     } finally {
       isRefreshing = false
@@ -87,6 +88,7 @@ export const logout = async () => {
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('role')
     localStorage.removeItem('name')
+    localStorage.removeItem('department')
   }
 }
 
@@ -120,7 +122,7 @@ export const getAllStaff = () => API.get('/admin/staff')
 export const updateStaff = (id, data) => API.patch(`/admin/staff/${id}`, data)
 export const deleteStaff = (id) => API.delete(`/admin/staff/${id}`)
 export const getStats = () => API.get('/admin/stats')
-export const getCategories = () => API.get('/admin/categories')
+export const getCategories = (department) => API.get('/admin/categories', { params: department ? { department } : {} })
 export const addCategory = (name) => API.post('/admin/categories', { name })
 export const deleteCategory = (id) => API.delete(`/admin/categories/${id}`)
 export const updateCategoryDepartment = (id, department) => API.patch(`/admin/categories/${id}`, { department })

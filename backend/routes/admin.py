@@ -502,10 +502,17 @@ def delete_department(dept_id):
 @admin_bp.route('/categories', methods=['GET'])
 @roles_required('admin', 'staff', 'citizen')
 def get_categories():
+    department = request.args.get('department')
     conn = get_db()
     cur = conn.cursor()
     try:
-        cur.execute("SELECT id, name, department FROM categories ORDER BY id")
+        if department:
+            cur.execute(
+                "SELECT id, name, department FROM categories WHERE department = %s ORDER BY id",
+                (department,)
+            )
+        else:
+            cur.execute("SELECT id, name, department FROM categories ORDER BY id")
         rows = cur.fetchall()
         return jsonify([{'id': r[0], 'name': r[1], 'department': r[2]} for r in rows]), 200
     except Exception as e:

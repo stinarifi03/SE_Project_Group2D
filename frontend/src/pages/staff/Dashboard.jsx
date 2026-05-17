@@ -32,6 +32,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const name = localStorage.getItem('name')
   const role = localStorage.getItem('role')
+  const department = localStorage.getItem('department')
   const { showToast } = useToast()
 
   const loadReports = async (page = 1) => {
@@ -56,7 +57,7 @@ export default function Dashboard() {
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const catsRes = await getCategories()
+        const catsRes = await getCategories(department || undefined)
         setCategories(catsRes.data)
       } catch {
         showToast('Failed to load dashboard data', 'error')

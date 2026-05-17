@@ -24,6 +24,8 @@ export default function Login() {
       localStorage.setItem('refresh_token', res.data.refresh_token)
       localStorage.setItem('role', res.data.role)
       localStorage.setItem('name', res.data.name)
+      if (res.data.department) localStorage.setItem('department', res.data.department)
+      else localStorage.removeItem('department')
 
       if (res.data.reset_required) {
         setResetRequired(true)
