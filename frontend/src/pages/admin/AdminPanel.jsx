@@ -437,8 +437,8 @@ export default function AdminPanel() {
                   <div><span className="muted">Category:</span> {selectedReport.category || '—'}</div>
                   <div><span className="muted">Status:</span> <span className={`badge ${selectedReport.status?.replace(/ /g, '-')}`}>{STATUS_LABELS[selectedReport.status] || selectedReport.status}</span></div>
                   <div><span className="muted">Department:</span> {selectedReport.department || '—'}</div>
-                  <div><span className="muted">Location:</span> {selectedReport.location_text || '—'}</div>
-                  <div><span className="muted">Submitted by:</span> {selectedReport.citizen_name || '—'}</div>
+                  <div><span className="muted">Location:</span> {selectedReport.latitude && selectedReport.longitude ? `${parseFloat(selectedReport.latitude).toFixed(4)}, ${parseFloat(selectedReport.longitude).toFixed(4)}` : '—'}</div>
+                  <div><span className="muted">Submitted by:</span> {selectedReport.citizen_name || `User #${selectedReport.citizen_id}` || '—'}</div>
                   <div><span className="muted">Date:</span> {selectedReport.created_at ? new Date(selectedReport.created_at).toLocaleDateString() : '—'}</div>
                 </div>
                 <div className="field" style={{ marginBottom: '.6rem' }}>
